@@ -58,6 +58,7 @@ int main(void)
 	char keypad = read_keypad();
 	// read_keypad deals with UART
 	switch(keypad)
+	{
 		case 'A':
 			POPCORN:
 			LCD_Display("PopCorn");
@@ -83,7 +84,7 @@ int main(void)
 			case_bc("Beef Weight ?",0.5);
 		break;
 		case 'C':
-		  case_bc("Chicken Weight ?",0.2);
+		  	case_bc("Chicken Weight ?",0.2);
 		break;
 		case 'D':
 			LCD_Display("Cooking Time ?");
@@ -114,4 +115,5 @@ int main(void)
 			Display_time (num_2);
 		}
 		}*/
+	}
 }
