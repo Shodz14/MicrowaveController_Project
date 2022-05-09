@@ -78,6 +78,8 @@ void case_bc(char* str,int time)
 
 int main(void)
 {
+	SYSTICK_Init();
+	System_Init();
 	char keypad = read_keypad();
 	// read_keypad deals with UART
 	switch(keypad)
