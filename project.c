@@ -1,6 +1,29 @@
-#include "stdbool"
-#include <stdlib>
-#include "string.h"
+#include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
+#include <tm4c123gh6pm.h>
+
+void SYSTICK_Init()
+{
+	NVIC_ST_CTRL_R = 0;
+	NVIC_ST_CURRENT_R = 0;
+	NVIC_ST_CTRL_R = 0X05;
+}
+
+void System_Init()
+{
+	SYSCTL_RCGCGPIO_R |= 0X20;
+	while(!(SYSCTL_PRGPIO_R & 0X20)){};
+	GPIO_PORTF_LOCK_R = GPIO_LOCK_KEY;
+	GPIO_PORTF_CR_R = 0X0E;
+
+	GPIO_PORTF_DEN_R |= 0X0E;
+	GPIO_PORTF_AFSEL_R &= ~0X0E;
+	GPIO_PORTF_PCTL_R &= ~0X0FFF0;
+	GPIO_PORTF_AMSEL_R &= ~0X0E;
+	GPIO_PORTF_DIR_R |= 0X0E;
+	GPIO_PORTF_DATA_R |= 0X0E;
+}
 
 bool check_door()
 {
@@ -55,9 +78,12 @@ void case_bc(char* str,int time)
 
 int main(void)
 {
+	SYSTICK_Init();
+	System_Init();
 	char keypad = read_keypad();
 	// read_keypad deals with UART
 	switch(keypad)
+	{
 		case 'A':
 			POPCORN:
 			LCD_Display("PopCorn");
@@ -83,7 +109,7 @@ int main(void)
 			case_bc("Beef Weight ?",0.5);
 		break;
 		case 'C':
-		  case_bc("Chicken Weight ?",0.2);
+		  	case_bc("Chicken Weight ?",0.2);
 		break;
 		case 'D':
 			LCD_Display("Cooking Time ?");
@@ -114,4 +140,5 @@ int main(void)
 			Display_time (num_2);
 		}
 		}*/
+	}
 }
