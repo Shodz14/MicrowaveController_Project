@@ -128,19 +128,23 @@ void Buzzer(unsigned short time)
 {
 	GPIO_PORTE_DATA_R |= 0x20;
 	Systick_Wait_1s(time);
-	GPIO_PORTE_DATA_R &= ~0x20;
+	GPIO_PORTE_DATA_R &= ~0x20;	//clearing
 }
 
 
 char SW3()
 {
-	return (GPIO_PORTE_DATA_R & 0X10);
+	char SW_3;
+	SW_3 = (GPIO_PORTE_DATA_R & 0X10); //reading SW3 (door position)
+	return SW_3;
 }
 	
 
-bool check_door()
+bool check_door()	// bool check_door()
 {
-	return ((SW3() == 0) ? 0:1);
+	bool checkDoor = true;
+	checkDoor = (SW3() == 0) ? 0 : 1; //(SW3() == 0) ? 0:1
+	return checkDoor;
 }
 
 void LCD_Countdown(int time)
@@ -189,7 +193,7 @@ void case_bc(char* str,unsigned short time)
 			}
 }
 
-int main(void)
+int main()
 {
     SYSTICK_Init();
     PortE_Init();
