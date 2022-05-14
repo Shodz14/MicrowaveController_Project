@@ -1,20 +1,29 @@
 #include "stdbool.h"
-#include "stdlib.h"
+#include <stdlib.h>
 #include "string.h"
 #include "tm4c123gh6pm.h"
 
-void portD_Init(void){
-	
+char keypad[4][4] = 
+{
+	{ '1', '2', '3', 'A'},
+	{ '4', '5', '6', 'B'},
+	{ '7', '8', '9', 'C'},
+	{ '*', '0', '#', 'D'},
+};
+
+void PortD_Init(void)
+	{
 	 SYSCTL_RCGCGPIO_R |= 0X08; // Enable clock to PORTD
 	 while(!(SYSCTL_PRGPIO_R & 0X08)){};
 	 GPIO_PORTD_LOCK_R = GPIO_LOCK_KEY;
 	 GPIO_PORTD_CR_R = 0XFF;  // Allow settings for all pins of PORTD
-	 GPIO_PORTD_DEN_R = 0XFF; // Set PORTD as digital pins
-	 GPIO_PORTD_DIR_R = 0X0F;  // Set the first 4 pins of PORTD as digital input
+	 GPIO_PORTD_DEN_R |= 0XFF; // Set PORTD as digital pins
+	 GPIO_PORTD_DIR_R |= 0X0F;  // Set PORTD as digital input
 	 GPIO_PORTD_DATA_R = 0X0F;
 	 GPIO_PORTD_AFSEL_R = 0X00;
 	 GPIO_PORTD_PCTL_R = 0X00000000;
 	 GPIO_PORTD_AMSEL_R = 0X00;
+	 GPIO_PORTD_PUR_R = 0XF0; 
 }
 void SYSTICK_Init()
 {
@@ -43,16 +52,17 @@ void PortF_Init()
 void PortE_Init()
 {
 	SYSCTL_RCGCGPIO_R |= 0X10;
-	while(!(SYSCTL_PRGPIO_R & 0X10)){};
+	while((SYSCTL_PRGPIO_R & 0X10)==0){};
 	GPIO_PORTE_LOCK_R = GPIO_LOCK_KEY;
-	GPIO_PORTE_CR_R = 0X30;
+	GPIO_PORTE_CR_R = 0X3F;
 
-	GPIO_PORTE_DEN_R |= 0X30;
-	GPIO_PORTE_AFSEL_R &= ~0X30;
-	GPIO_PORTE_PCTL_R &= ~0XFF0000;
-	GPIO_PORTE_AMSEL_R &= ~0X30;
-	GPIO_PORTE_DIR_R |= 0X20;
-	GPIO_PORTE_DATA_R = 0X00;
+	GPIO_PORTE_DEN_R |= 0X3F;
+	GPIO_PORTE_AFSEL_R &= ~0X3F;
+	GPIO_PORTE_PCTL_R &= ~0XFFFFFF;
+	GPIO_PORTE_AMSEL_R &= ~0X3F;
+	GPIO_PORTE_DIR_R = 0X20;
+	GPIO_PORTE_DATA_R &= 0X00;
+	GPIO_PORTD_PUR_R = 0X0F;
 }
 
 void PortB_Init()
@@ -127,6 +137,40 @@ void LCD_Command(unsigned char command)
 	if(command <4) delay_milli(2); else delay_micro(37); 
 }
 
+void LCD_Init(void)
+{
+	/*SYSCTL_RCGCGPIO_R |= 0x01; //PORTA clock
+	SYSCTL_RCGCGPIO_R |= 0x02;
+	GPIO_PORTA_DIR_R |=0xE0; //PORTA controls RS,E and R/W
+	GPIO_PORTA_DEN_R |=0xE0;
+	GPIO_PORTB_DIR_R |=0xFF; //PORTB D0-D7
+	GPIO_PORTB_DEN_R |=0xFF; //PORTB D0-D7  */
+	LCD_Command(0x38); //8-bits,2 display lines, 5x7 font
+	//LCD_Command(0x06); //increments automatically
+	LCD_Command(0x0F); //Turn on display
+	LCD_Command(0x01); //clear display
+}
+
+
+void LCD_Display(unsigned char data) 
+{ 
+	GPIO_PORTA_DATA_R =0x20; //RS=1, E=0,RW=0
+	GPIO_PORTB_DATA_R =data;
+	GPIO_PORTA_DATA_R |= 0x80;
+	GPIO_PORTA_DATA_R =0x00;
+	delay_micro(0);
+}
+void LCD_Write_Data(char* data, unsigned long size)
+{
+	unsigned long i = 0;
+	LCD_Command(1);
+	LCD_Command(2);
+	for (i = 0; i < size; i++){
+		LCD_Display(data[i]);
+		LCD_Command(0X14);
+	}
+}
+
 void LED_Blink( unsigned short t)
 {
 	unsigned long i;
@@ -160,7 +204,7 @@ bool check_door()	// bool check_door()
 	return checkDoor;
 }
 
-void LCD_Countdown(int time)
+/*void LCD_Countdown(int time)
 {
 	int i;
 	for (i = time; i >= 0; i--)
@@ -171,18 +215,45 @@ void LCD_Countdown(int time)
 	Display_time(i);
 	// Countdown the time on LCD for time
 	}
-}
 // time is in seconds
+}*/
+
+unsigned short Check (unsigned short j)
+	{
+	if (j==0){
+		return (~GPIO_PORTD_DATA_R & 0X80);
+	}
+	else {
+		return(~GPIO_PORTE_DATA_R & (1<<j));
+	}
+}
+
+char Read_keypad()
+{
+	unsigned short i,j;
+	while(1){
+		for(i=0; i<4; i++){     //ROWS
+			GPIO_PORTD_DATA_R &= ~(1<<i); 
+			for(j=0; j<4; j++){   //COLUMN
+				if(Check(j)){
+					return keypad[i][j];
+				}
+		}	GPIO_PORTD_DATA_R |= 0X0F;
+	}
+}
+}
 
 void case_bc(char* str,unsigned short time)
 {
+	char kilo;
+	char* ptr_kilo = &kilo;
 	Loop:
-			LCD_Display(str);
-		  char kilo = read_keypad();
-	    kilo = atoi(kilo);
+			kilo = Read_keypad();
+	    kilo = atoi(ptr_kilo);
+			LCD_Write_Data(str, strlen(str));
 		  if(kilo < 1 || kilo > 9 || kilo%1 != 0)
 			{
-				LCD_Display("Err");
+				LCD_Write_Data("Err",3);
 				Systick_Wait_1s(2);
 				goto Loop;
 			}
@@ -200,7 +271,7 @@ void case_bc(char* str,unsigned short time)
 			}
 			else
 			{
-				LCD_Display("Please Close Door"); //Display for 3 seconds
+				LCD_Write_Data("Please Close Door", 17); //Display for 3 seconds
 				Systick_Wait_1s(3);
 				goto Loop;
 			}
@@ -208,30 +279,31 @@ void case_bc(char* str,unsigned short time)
 
 int main()
 {
+	char keypad = Read_keypad();
     SYSTICK_Init();
     PortE_Init();
 	  PortF_Init();
 	  PortB_Init();
-	char keypad = read_keypad();
+		PortD_Init();
 	// read_keypad deals with UART
 	switch(keypad){
 		case 'A':
-			POPCORN:
-			LCD_Display("PopCorn");
-		  Systick_Wait_1s(3);
+			//POPCORN:
+			LCD_Write_Data("PopCorn", 7);
+		  Systick_Wait_1s(10);
 		// Display "PopCorn" for 1 sec for words
 			if(check_door() == 0) //door closed = 0
 			{
 			LCD_Command(0x01); //Clear please close the door if closed before 5 sec
-		  LCD_Countdown(60);
+		  /*LCD_Countdown(60);
 		// Countdown 60 sec
-		  LCD_Command(0x01);
+		  LCD_Command(0x01);  //clear lcd
 		  LED_Blink(3);
 		  Buzzer(3);
 			}
 			else
 			{
-				LCD_Display("Please Close Door"); //Display for 5 seconds
+				LCD_Write_Data("Please Close Door"); //Display for 5 seconds
 				Systick_Wait_1s(3);
 				goto POPCORN;
 			}
@@ -245,7 +317,7 @@ int main()
 		case 'D':
 			LCD_Display("Cooking Time ?");
 	}
-}	/*int num_2 = 0;
+}	int num_2 = 0;
 		for(short i = 0; i < 3; i++)
 		{
 			if(SW1 == 0)
@@ -267,9 +339,7 @@ int main()
 			}
 			else if(i ==3)
 			{
-
 			}
 			Display_time (num_2);
 		}
-		}*/
-
+		}*/}}}
