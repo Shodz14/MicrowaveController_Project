@@ -1,5 +1,5 @@
 #include "stdbool.h"
-#include <stdlib.h>
+#include "stdlib.h"
 #include "string.h"
 #include "tm4c123gh6pm.h"
 
@@ -11,7 +11,7 @@ void portD_Init(void){
 	 GPIO_PORTD_CR_R = 0XFF;  // Allow settings for all pins of PORTD
 	 GPIO_PORTD_DEN_R = 0XFF; // Set PORTD as digital pins
 	 GPIO_PORTD_DIR_R = 0X0F;  // Set the first 4 pins of PORTD as digital input
-	 GPIO_PORTD_DATA_R = 0X00;
+	 GPIO_PORTD_DATA_R = 0X0F;
 	 GPIO_PORTD_AFSEL_R = 0X00;
 	 GPIO_PORTD_PCTL_R = 0X00000000;
 	 GPIO_PORTD_AMSEL_R = 0X00;
