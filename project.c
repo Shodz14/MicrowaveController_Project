@@ -62,7 +62,7 @@ void PortE_Init()
 	GPIO_PORTE_AMSEL_R &= ~0X3F;
 	GPIO_PORTE_DIR_R = 0X20;
 	GPIO_PORTE_DATA_R &= 0X00;
-	GPIO_PORTD_PUR_R = 0X0F;
+	GPIO_PORTE_PUR_R = 0X0F;
 }
 
 void PortB_Init()
