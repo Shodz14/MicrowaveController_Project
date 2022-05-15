@@ -1,5 +1,5 @@
 #include "stdbool.h"
-#include <stdlib.h>
+#include "stdlib.h"
 #include "string.h"
 #include "tm4c123gh6pm.h"
 
@@ -16,6 +16,7 @@ void PortD_Init(void)
 	 SYSCTL_RCGCGPIO_R |= 0X08; // Enable clock to PORTD
 	 while(!(SYSCTL_PRGPIO_R & 0X08)){};
 	 GPIO_PORTD_LOCK_R = GPIO_LOCK_KEY;
+	
 	 GPIO_PORTD_CR_R = 0XFF;  // Allow settings for all pins of PORTD
 	 GPIO_PORTD_DEN_R |= 0XFF; // Set PORTD as digital pins
 	 GPIO_PORTD_DIR_R |= 0X0F;  // Set PORTD as digital input
@@ -24,12 +25,6 @@ void PortD_Init(void)
 	 GPIO_PORTD_PCTL_R = 0X00000000;
 	 GPIO_PORTD_AMSEL_R = 0X00;
 	 GPIO_PORTD_PUR_R = 0XF0; 
-}
-void SYSTICK_Init()
-{
-	NVIC_ST_CTRL_R = 0;
-	NVIC_ST_CURRENT_R = 0;
-	NVIC_ST_CTRL_R = 0X05;
 }
 
 void PortF_Init()
@@ -44,7 +39,7 @@ void PortF_Init()
 	GPIO_PORTF_PCTL_R &= ~0X0FFF0;
 	GPIO_PORTF_AMSEL_R &= ~0X0E;
 	GPIO_PORTF_DIR_R |= 0X0E;
-	GPIO_PORTF_DATA_R |= 0X0E;
+	GPIO_PORTF_DATA_R =| 0X00;
 }
 
 
@@ -95,6 +90,12 @@ void PortA_Init()
 	GPIO_PORTB_DATA_R = 0X00;
 }
 
+void SYSTICK_Init()
+{
+	NVIC_ST_CTRL_R = 0;
+	NVIC_ST_CURRENT_R = 0;
+	NVIC_ST_CTRL_R = 0X05;
+}
 
 void Systick_Wait(unsigned long delay)
 {
@@ -279,34 +280,37 @@ void case_bc(char* str,unsigned short time)
 
 int main()
 {
-	char keypad = Read_keypad();
-    SYSTICK_Init();
-    PortE_Init();
-	  PortF_Init();
-	  PortB_Init();
-		PortD_Init();
-	// read_keypad deals with UART
-	switch(keypad){
+	char key;
+        SYSTICK_Init();
+        PortE_Init();
+	PortF_Init();
+	PortB_Init();
+	PortD_Init();
+	PortA_Init();
+	
+	key = Read_keypad();
+	switch(key){
 		case 'A':
-			//POPCORN:
-			LCD_Write_Data("PopCorn", 7);
+		  POPCORN:
+		  LCD_Write_Data("PopCorn", 7);
 		  Systick_Wait_1s(10);
-		// Display "PopCorn" for 1 sec for words
-			if(check_door() == 0) //door closed = 0
-			{
-			LCD_Command(0x01); //Clear please close the door if closed before 5 sec
-		  /*LCD_Countdown(60);
-		// Countdown 60 sec
-		  LCD_Command(0x01);  //clear lcd
-		  LED_Blink(3);
-		  Buzzer(3);
-			}
-			else
-			{
-				LCD_Write_Data("Please Close Door"); //Display for 5 seconds
-				Systick_Wait_1s(3);
-				goto POPCORN;
-			}
+		// Display "PopCorn" for 10 sec 
+			
+		  if(check_door() == 0) //door closed = 0
+		  {  
+		  	LCD_Command(0x01); //Clear please close the door if closed before 5 sec
+		  	/*LCD_Countdown(60);
+		  	// Countdown 60 sec
+		  	LCD_Command(0x01);  //clear lcd
+		  	LED_Blink(3);
+		  	Buzzer(3);
+		  }
+		  else
+		 {
+			LCD_Write_Data("Please Close Door"); //Display for 5 seconds
+			Systick_Wait_1s(3);
+			goto POPCORN;
+		}
 		break;
 		case 'B':
 			case_bc("Beef Weight ?",30);
