@@ -287,6 +287,7 @@ int main()
 	PortB_Init();
 	PortD_Init();
 	PortA_Init();
+	LCD_Init();
 	
 	key = Read_keypad();
 	switch(key){
