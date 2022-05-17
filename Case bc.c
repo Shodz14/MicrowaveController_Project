@@ -247,6 +247,7 @@ void case_bc(char* str,unsigned short time)
 	
 	Loop:
 			LCD_Write_Data(str, strlen(str));
+	Systick_Wait_1ms(500);
 			kilo = Read_keypad();					// outputs a character value
 	  	 if(kilo >= 1 && kilo <= 9 ) 	//to check if decimal or not (&& kilo%1 == 0)
 					{
@@ -265,7 +266,7 @@ void case_bc(char* str,unsigned short time)
 			else //(kilo== '*'||kilo=='#')				//wrong char inputed
 					{
 						LCD_Write_Data("Err",3);		
-						Systick_Wait_1s(2);							// show “Err” for 2 seconds
+						Systick_Wait_1s(2);							// show â€œErrâ€ for 2 seconds
 						goto Loop;
 					}
 			
