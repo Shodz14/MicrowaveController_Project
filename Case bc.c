@@ -244,31 +244,32 @@ void case_bc(char* str,unsigned short time)
 {
 	char kilo;
 	char* ptr_kilo = &kilo;						//char* ptr_kilo = kilo; pointer to var address 
+	unsigned short kilo_int;
 	
 	Loop:
-			LCD_Write_Data(str, strlen(str));
+	LCD_Write_Data(str, strlen(str));
 	Systick_Wait_1ms(500);
-			kilo = Read_keypad();					// outputs a character value
-	  	 if(kilo >= 1 && kilo <= 9 ) 	//to check if decimal or not (&& kilo%1 == 0)
-					{
-						kilo = atoi(ptr_kilo);				// converts char into Integer
-						LCD_Command(Clear_Display);		
-						LCD_Display(*ptr_kilo);					//LCD_Display(kilo);
-						Systick_Wait_1s(2);							// show weight for 2 seconds
-						LCD_Command(Clear_Display);
-						while (sw3 == 0 && sw2 == 0)
-							{
-								LCD_Command(Clear_Display);
-								Systick_Wait_1ms(200);
-								LCD_Countdown(kilo * time);	
-							}
-					}		  
-			else //(kilo== '*'||kilo=='#')				//wrong char inputed
-					{
-						LCD_Write_Data("Err",3);		
-						Systick_Wait_1s(2);							// show “Err” for 2 seconds
-						goto Loop;
-					}
+	kilo = Read_keypad();					// outputs a character value
+	kilo_int = atoi(ptr_kilo);				// converts char into Integer
+	if(kilo_int >= 1 && kilo_int <= 9 ) 	//to check if decimal or not (&& kilo%1 == 0)
+	{
+		LCD_Command(Clear_Display);		
+		LCD_Write_Data(ptr_kilo,1);			//LCD_Display(kilo);
+		Systick_Wait_1s(2);				// show weight for 2 seconds
+		LCD_Command(Clear_Display);
+		while (sw3 == 0 && sw2 == 0)
+		{
+			LCD_Command(Clear_Display);
+			Systick_Wait_1ms(200);
+			LCD_Countdown(kilo * time);	
+		}
+	}		  
+	else //(kilo== '*'||kilo=='#')				//wrong char inputed
+	{
+		LCD_Write_Data("Err",3);		
+		Systick_Wait_1s(2);				// show “Err” for 2 seconds
+		goto Loop;
+	}
 			
 			
 					
