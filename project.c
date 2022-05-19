@@ -49,16 +49,17 @@ void PortE_Init()
 	SYSCTL_RCGCGPIO_R |= 0X10;
 	while((SYSCTL_PRGPIO_R & 0X10)==0){};
 	GPIO_PORTE_LOCK_R = GPIO_LOCK_KEY;
-	GPIO_PORTE_CR_R = 0X1E;
+	GPIO_PORTE_CR_R = 0X3F;
 
-	GPIO_PORTE_DEN_R |= 0X1E;
-	GPIO_PORTE_AFSEL_R &= ~0X1E;
-	GPIO_PORTE_PCTL_R &= ~0XFFFF0;
-	GPIO_PORTE_AMSEL_R &= ~0X1E;
+	GPIO_PORTE_DEN_R |= 0X3F;
+	GPIO_PORTE_AFSEL_R &= ~0X3F;
+	GPIO_PORTE_PCTL_R &= ~0XFFFFFF;
+	GPIO_PORTE_AMSEL_R &= ~0X3F;
 	GPIO_PORTE_DIR_R = 0X1E;
 	GPIO_PORTE_DATA_R = 0X1E;
-	GPIO_PORTE_DIR_R = 0X00;
+	GPIO_PORTE_DIR_R = 0X01;
 	GPIO_PORTE_PDR_R = 0x1E;
+	GPIO_PORTE_PUR_R |= 0X20;
 }
 
 void PortF_Init()
@@ -66,14 +67,15 @@ void PortF_Init()
 	SYSCTL_RCGCGPIO_R |= 0X20;
 	while(!(SYSCTL_PRGPIO_R & 0X20)){};
 	GPIO_PORTF_LOCK_R = GPIO_LOCK_KEY;
-	GPIO_PORTF_CR_R = 0X0E;
+	GPIO_PORTF_CR_R = 0X1F;
 
-	GPIO_PORTF_DEN_R |= 0X0E;
-	GPIO_PORTF_AFSEL_R &= ~0X0E;
-	GPIO_PORTF_PCTL_R &= ~0X0FFF0;
-	GPIO_PORTF_AMSEL_R &= ~0X0E;
+	GPIO_PORTF_DEN_R |= 0X1F;
+	GPIO_PORTF_AFSEL_R &= ~0X1F;
+	GPIO_PORTF_PCTL_R &= ~0XFFFFF;
+	GPIO_PORTF_AMSEL_R &= ~0X1F;
 	GPIO_PORTF_DIR_R |= 0X0E;
-	GPIO_PORTF_DATA_R |= 0X00;
+	GPIO_PORTF_PUR_R = 0x11;
+	GPIO_PORTF_DATA_R &= ~0X0E;
 }
 
 void Systick_Init()
@@ -89,15 +91,6 @@ void Systick_Wait(unsigned long delay)
 	NVIC_ST_CURRENT_R = 0;
 	NVIC_ST_RELOAD_R = delay - 1;
 	while(!(NVIC_ST_CTRL_R & 0X10000)){};
-}
-
-void Systick_Wait_1s(unsigned long delay)
-{
-	unsigned long i;
-	for(i = 0; i < delay; i++)
-	{
-		Systick_Wait(16000000);
-	}
 }
 
 void Systick_Wait_1ms(unsigned long delay)
@@ -134,7 +127,7 @@ void LCD_Init(void)
 {		
 	 LCD_Command(SetTo8Bits);
 	 LCD_Command(EntryMode);
-	 LCD_Command(Cursor_On);
+	 LCD_Command(Cursor_Off);
 	 Systick_Wait_1ms(2);
 }
 
@@ -160,13 +153,14 @@ void LCD_Write_Data(char* data, unsigned short size)
 	}
 }
 
-void LED_Blink( unsigned short t)
+void LED_Blink(unsigned short t)
 {
 	unsigned long i;
 	for(i = 0; i < 2*t; i++)
 	{
 		GPIO_PORTF_DATA_R ^= 0X0E;
-		Systick_Wait_1s(1);
+		GPIO_PORTE_DATA_R ^= 0X01;
+		Systick_Wait_1ms(1000);
 	}
 }
 
@@ -182,17 +176,40 @@ void Set(unsigned short i)
 	}
 }
 
+bool SW2()
+{
+	return(GPIO_PORTF_DATA_R & 0X01); 
+}
+
+bool SW3()
+{
+	return 1;
+}
+
+bool SW1()
+{
+	return(GPIO_PORTF_DATA_R & 0X10); //reading SW1
+}
+
 char Read_Keypad()
 {
 	unsigned short i,j;
+	//char tmp;
 	while(1){
 		for(i = 0; i <= 4; i++){ 			//COLUMNS
 			Set(i);
 			Systick_Wait_1us(3);
-			for( j = 0; j < 4; j++){   //COLUMN
-				if((GPIO_PORTE_DATA_R & 0x1E) & (1U << j+1)){
-					if(i ==4) i--;
+			for( j = 0; j < 4; j++){   //ROWS
+				if (SW2() == 0) return '@';
+				if (SW1() == 0) return '!';
+				if((GPIO_PORTE_DATA_R & 0x1E) & (1 << j+1)){
+					if(i == 4) i--;
+					//tmp = keypad[j][i];
 					return keypad[j][i];
+					/*if (tmp != '*' && tmp !='#')
+					{
+						return tmp;
+					}*/
 				}
 		}
 		GPIO_PORTA_DATA_R &= ~0X9C;
@@ -200,27 +217,27 @@ char Read_Keypad()
 }
 }
 
-bool SW3()
-{
-	return 1;
-}
-bool SW2()
-{
-	return(GPIO_PORTF_DATA_R & 0X01); //reading SW2
-}
-bool SW1()
-{
-	return(GPIO_PORTF_DATA_R & 0X10); //reading SW1
-}
-
 void LCD_Countdown(char* time)   // 15:45   0=>9   48=>57        : => 58
 {
-	char i;
+	char i,j;
 	char temp[5];
+	if(time[0] >= '3')
+	{
+		temp [0] = '3';
+		temp [1] = '0';
+		temp [2] = ':';
+		temp [3] = '0';
+		temp [4] = '0';
+	}
+	else{
 	for(i = 0; i<5;i++)
 	{
 		temp[i]=time[i];
 	}
+	}
+	LCD_Write_Data(temp,strlen(temp));
+	GPIO_PORTF_DATA_R |= 0X0E;
+	while(SW3() == 0){}
 	for(;temp[0] >= 48; temp[0]--)
 	{
 		for(;temp[1] >= 48; temp[1]--)
@@ -230,14 +247,36 @@ void LCD_Countdown(char* time)   // 15:45   0=>9   48=>57        : => 58
 					for(;temp[4] >= 48;temp[4]--)
 					{
 						LCD_Write_Data(temp,strlen(temp));
-						// while(0 /SW3() == 0){}
-						if(0)//SW1() ==  0/)
+						for (i = 0;i < 10;i++)
 						{
-							Systick_Wait_1ms(500);
-							while(SW2() == 1 && SW1() == 1){}
-							if(SW1() == 0){return;}
+							while(SW3() == 0){}
+							if(SW1() ==  0)
+						  {
+									Systick_Wait_1ms(300);						// to run the previous condition correctly
+									while(SW2() == 1 && SW1() == 1)   //as long as sw1 and sw2 are not pressed ->> while loop
+									{
+										for(j = 0; j<10; j++)
+										{
+											if(j == 0)
+											{
+												GPIO_PORTF_DATA_R ^= 0X0E;
+											}
+											Systick_Wait_1ms(100);
+											if(SW2() == 0 || SW1() == 0) {
+												
+												break;}
+										}
+									}
+									if(SW1() == 0)
+									{
+										GPIO_PORTF_DATA_R &= ~0X0E;
+										LCD_Command(Clear_Display);
+										return;
+									}
+							}
+						GPIO_PORTF_DATA_R |= 0X0E;
+						Systick_Wait_1ms(100);
 						}
-						Systick_Wait_1ms(1000);
 					}
 					temp[4]= 57;
 				}
@@ -245,6 +284,8 @@ void LCD_Countdown(char* time)   // 15:45   0=>9   48=>57        : => 58
 		}
 		temp[1]= 57;
 	}
+	GPIO_PORTF_DATA_R &= ~0X0E;
+	LED_Blink(3);
 }
 
 char* Timer (char kilo_in_numbers, char time)
@@ -263,43 +304,60 @@ char* Timer (char kilo_in_numbers, char time)
 	return time_in_char;
 }
 
-void Wait_For_Input()
-{
-	while(((GPIO_PORTE_DATA_R & 0x3E) == 0x3E )&&((GPIO_PORTF_DATA_R & 0x11) == 0x11)){}
-}
-
 char* Enter_Time()
 {
-	char i, counter = 1;
-	char time[5] = "00:00";
+	char tmp;
+	char time[5];
+SW1:
+	time [0] = '0';
+	time [1] = '0';
+	time [2] = ':';
+	time [3] = '0';
+	time [4] = '0';
+	
 	LCD_Write_Data(time, 5);
-	Wait_For_Input();
-	while(SW2() == 1)
-	{
-		if(counter == 1){
-			time[4] = Read_Keypad();
-			LCD_Write_Data(time, 5);
-			counter++;}
-		else if(counter == 2){
-			time[3] = time[4];
-			time[4] = Read_Keypad();
-			LCD_Write_Data(time, 5);			
-			counter++;}
-		else if(counter == 3){
-			time[1] = time[3];
-			time[3] = time[4];
-			time[4] = Read_Keypad();
-			LCD_Write_Data(time, 5);
-			counter++;}
-		else if(counter == 4){
-			time[0] = time[1];
-			time[1] = time[3];
-			time[3] = time[4];
-			time[4] = Read_Keypad();
-			LCD_Write_Data(time, 5);
-			counter++;}
-		Wait_For_Input();
-	}
+	tmp = Read_Keypad();
+	Systick_Wait_1ms(100);
+	if (tmp == '!') goto SW1;
+	if (tmp == '@') return time;
+	time[4] = tmp;
+	LCD_Write_Data(time, 5);
+	Systick_Wait_1ms(100);
+	
+	tmp = Read_Keypad();
+	Systick_Wait_1ms(100);
+	if (tmp == '!') goto SW1;
+	if (tmp == '@') return time;
+	time[3] = time[4];
+	time[4] = tmp;
+	LCD_Write_Data(time, 5);
+	Systick_Wait_1ms(100);
+
+	tmp = Read_Keypad();
+	Systick_Wait_1ms(100);
+	if (tmp == '!') goto SW1;
+	if (tmp == '@') return time;
+	time[1] = time[3];
+	time[3] = time[4];
+	time[4] = tmp;
+	LCD_Write_Data(time, 5);
+	Systick_Wait_1ms(100);
+
+	tmp = Read_Keypad();
+	Systick_Wait_1ms(100);
+	if (tmp == '!') goto SW1;
+	if (tmp == '@') return time;
+	time[0] = time[1];
+	time[1] = time[3];
+	time[3] = time[4];
+	time[4] = tmp;
+	LCD_Write_Data(time, 5);
+	Systick_Wait_1ms(100);
+	tmp = Read_Keypad();
+	Systick_Wait_1ms(100);
+	if (tmp == '!') goto SW1;
+	if (tmp == '@') return time;
+	while(SW2()== 1){};
 	return time;
 }
 
@@ -311,11 +369,6 @@ void case_bc(char* str,unsigned short time)
 	char i;
 	char* timer_ptr;
 	char timer[5];
-	for(i = 0; i<5;i++)
-	{
-			timer[i]=timer_ptr[i];
-	}
-		LCD_Countdown(timer);
 	
 	Loop:
 			LCD_Write_Data(str, strlen(str));
@@ -326,7 +379,7 @@ void case_bc(char* str,unsigned short time)
 					{
 						LCD_Command(Clear_Display);		
 						LCD_Write_Data(ptr_kilo,1);					//LCD_Display(kilo);
-						Systick_Wait_1s(2);							// show weight for 2 seconds
+						Systick_Wait_1ms(2000);							// show weight for 2 seconds
 						LCD_Command(Clear_Display);
 						Systick_Wait_1ms(200);
 						timer_ptr = Timer(kilo_int, time);
@@ -345,7 +398,7 @@ void case_bc(char* str,unsigned short time)
 			else //(kilo== '*'||kilo=='#')				//wrong char inputed
 					{
 						LCD_Write_Data("Err",3);		
-						Systick_Wait_1s(2);							// show “Err” for 2 seconds
+						Systick_Wait_1ms(2000);							// show “Err” for 2 seconds
 						goto Loop;
 					}
 			
@@ -374,6 +427,9 @@ void case_bc(char* str,unsigned short time)
 int main(void)
 {
 	char key ;
+	char i;
+	char* time_ptr;
+	char time[5];
 	PortA_Init();
 	PortB_Init();
 	PortE_Init();
@@ -385,37 +441,21 @@ int main(void)
 	
 	
 	while(1) {
-		char i;
-		char* time_ptr;
-		char time[5];
 		LCD_Write_Data("What to eat ?",12);
 		Systick_Wait_1ms(500);
 		key = Read_Keypad();
 		switch(key){
 		case 'A':
-		  POPCORN:
 		  LCD_Write_Data("PopCorn", 7);
-		  Systick_Wait_1s(3);
-		  LCD_Command(Next_Line);
-		  LCD_Countdown("01:00"); 
+		  Systick_Wait_1ms(3000);
+		  time_ptr = Timer(1,60);
+			for(i = 0; i < 5; i++)
+			{
+				time[i] = time_ptr[i];
+			}
+		  LCD_Countdown(time); 
 	    break;
-		
-			/*if(check_door() == 0) //door closed = 0
-		  {  
-		  	LCD_Command(Clear_Display); //Clear please close the door if closed before 5 sec
-		  	//LCD_Countdown(60);
-		  	// Countdown 60 sec
-		  	LCD_Command(Clear_Display);  //clear lcd
-		  	LED_Blink(3);
-		  	Buzzer(3);
-		  }
-		  else
-		 {
-			LCD_Write_Data("Please Close Door",17); //Display for 5 seconds
-			Systick_Wait_1s(3);
-			goto POPCORN;
-		}
-		break;*/
+	
 		case 'B':
 			case_bc("Beef Weight ?",30);
 		break;
@@ -423,8 +463,10 @@ int main(void)
 		  case_bc("Chicken Weight ?",12);
 		break;
 		case 'D':
+			LCD_Write_Data("Cooking Time:",13);
+		  Systick_Wait_1ms(1000);
 			time_ptr = Enter_Time();
-			for(i = 0; i < 4; i++)
+			for(i = 0; i < 5; i++)
 			{
 				time[i] = time_ptr[i];
 			}
