@@ -12,7 +12,7 @@ char keypad[4][4] =
 
 void Set(unsigned short i)
 {
-	if (i < 4)
+	if (i < 3)
 	{
 		GPIO_PORTA_DATA_R |= (0X04<<i);
 	}
@@ -27,14 +27,13 @@ char Read_Keypad()									// reads any input from keypad
 {
 	char i,j;
 	while(1){
-		for(i = 0; i <= 4; i++){ 			//COLUMNS
+		for(i = 0; i <= 3; i++){ 			//COLUMNS
 			Set(i);
 			Systick_Wait_1us(3);
-			for( j = 0; j < 4; j++){   //ROWS
+			for(j = 0; j < 4; j++){   //ROWS
 				if (SW2() == 0) return '@';				//flag for starting 
 				if (SW1() == 0) return '!';				//flag for stop
 				if((GPIO_PORTE_DATA_R & 0x1E) & (1 << (j+1))){
-					if(i == 4) i--;
 					return keypad[j][i];
 				}
 		}
