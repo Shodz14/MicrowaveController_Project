@@ -4,16 +4,6 @@
 #include "ports.h"
 #include "keypad.h"
 
-void LED_Blink(unsigned short t)						// LEDs blinking function
-{
-	char i;
-	for(i = 0; i < 2*t; i++)
-	{
-		GPIO_PORTF_DATA_R ^= 0X0E;
-		GPIO_PORTE_DATA_R ^= 0X01;
-		Systick_Wait_1ms(500);
-	}
-}
 void LCD_Command(char command)
 {
 	GPIO_PORTA_DATA_R &= ~0x60; //RS =0, E=0
@@ -24,6 +14,17 @@ void LCD_Command(char command)
   else
         Systick_Wait_1us(2000);
 	GPIO_PORTA_DATA_R &= ~0x60;
+}
+
+void LED_Blink(unsigned short t)						// LEDs blinking function
+{
+	char i;
+	for(i = 0; i < 2*t; i++)
+	{
+		GPIO_PORTF_DATA_R ^= 0X0E;
+		GPIO_PORTE_DATA_R ^= 0X01;
+		Systick_Wait_1ms(500);
+	}
 }
 
 void LCD_Init(void)
@@ -54,6 +55,24 @@ void LCD_Write_Data(char* data, unsigned short size) 				//for writing strings o
 		LCD_Display(*(data+i));
 		Systick_Wait_1us(10);
 	}
+}
+
+
+char* Timer (char kilo, char time)
+{
+	unsigned short time_in_seconds;
+	char kilo_in_numbers,time_in_char[5];
+	kilo_in_numbers = kilo - '0';
+	time_in_seconds = kilo_in_numbers * time;
+	time_in_char[0] = (time_in_seconds/600)+'0';
+	time_in_seconds = time_in_seconds % 600 ;
+	time_in_char[1] = (time_in_seconds/60)+'0';
+	time_in_seconds = time_in_seconds % 60 ;
+	time_in_char[2] = ':';
+	time_in_char[3] = (time_in_seconds/10)+'0';
+	time_in_seconds = time_in_seconds % 10;
+	time_in_char[4] = time_in_seconds+'0';
+	return time_in_char;
 }
 
 void LCD_Countdown(char* time)   // 15:45   0=>9   48=>57        : => 58
@@ -141,24 +160,6 @@ void LCD_Countdown(char* time)   // 15:45   0=>9   48=>57        : => 58
 	}
 	GPIO_PORTF_DATA_R &= ~0X0E;
 	LED_Blink(3);
-}
-
-
-char* Timer (char kilo, char time)
-{
-	unsigned short time_in_seconds;
-	char kilo_in_numbers,time_in_char[5];
-	kilo_in_numbers = kilo - '0';
-	time_in_seconds = kilo_in_numbers * time;
-	time_in_char[0] = (time_in_seconds/600)+'0';
-	time_in_seconds = time_in_seconds % 600 ;
-	time_in_char[1] = (time_in_seconds/60)+'0';
-	time_in_seconds = time_in_seconds % 60 ;
-	time_in_char[2] = ':';
-	time_in_char[3] = (time_in_seconds/10)+'0';
-	time_in_seconds = time_in_seconds % 10;
-	time_in_char[4] = time_in_seconds+'0';
-	return time_in_char;
 }
 
 char* Enter_Time()
