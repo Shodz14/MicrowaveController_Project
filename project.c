@@ -7,10 +7,7 @@
 
 int main(void)
 {
-	char key ;
-	char i;
-	char* time_ptr;
-	char time[5];
+	char key, i, *time_ptr, time[5];
 	PortA_Init();
 	PortB_Init();
 	PortE_Init();
@@ -20,7 +17,6 @@ int main(void)
 	LCD_Command(Clear_Display);
 	LCD_Command(Return_Home);
 	
-	
 	while(1) {
 		LCD_Write_Data("What to eat?",12);
 		Systick_Wait_1ms(500);
@@ -29,7 +25,7 @@ int main(void)
 		case 'A':
 		  LCD_Write_Data("PopCorn", 7);				//display PopCorn on LCD
 		  Systick_Wait_1ms(3000);							//display PopCorn on LCD for 3 seconds
-		  time_ptr = Timer(1,60);							
+		  time_ptr = Timer('1',60);							
 			for(i = 0; i < 5; i++)							
 			{
 				time[i] = time_ptr[i];						
