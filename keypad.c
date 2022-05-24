@@ -10,7 +10,17 @@ char keypad[4][4] =
 	{ '*', '0', '#', 'D'},
 };
 
-
+void Set(unsigned short i)
+{
+	if (i < 3)
+	{
+		GPIO_PORTA_DATA_R |= (0X04<<i);
+	}
+	else
+	{
+		GPIO_PORTA_DATA_R |= 0x80;
+	}
+}
 
 
 char Read_Keypad()									// reads any input from keypad
