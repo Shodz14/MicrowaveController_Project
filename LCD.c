@@ -161,4 +161,57 @@ void LCD_Countdown(char* time)   // 15:45   0=>9   48=>57        : => 58
 	GPIO_PORTF_DATA_R &= ~0X0E;
 	LED_Blink(3);
 }
+char* Enter_Time()
+{
+	char tmp,time[5];
+SW1:
+	time [0] = '0';
+	time [1] = '0';
+	time [2] = ':';
+	time [3] = '0';
+	time [4] = '0';
+	
+	LCD_Write_Data(time, 5);
+	tmp = Read_Keypad();
+	Systick_Wait_1ms(200);
+	if (tmp == '!') goto SW1;
+	if (tmp == '@') return time;
+	time[4] = tmp;
+	LCD_Write_Data(time, 5);
+	Systick_Wait_1ms(100);
+	
+	tmp = Read_Keypad();
+	Systick_Wait_1ms(200);
+	if (tmp == '!') goto SW1;
+	if (tmp == '@') return time;
+	time[3] = time[4];
+	time[4] = tmp;
+	LCD_Write_Data(time, 5);
+	Systick_Wait_1ms(100);
 
+	tmp = Read_Keypad();
+	Systick_Wait_1ms(200);
+	if (tmp == '!') goto SW1;
+	if (tmp == '@') return time;
+	time[1] = time[3];
+	time[3] = time[4];
+	time[4] = tmp;
+	LCD_Write_Data(time, 5);
+	Systick_Wait_1ms(100);
+
+	tmp = Read_Keypad();
+	Systick_Wait_1ms(200);
+	if (tmp == '!') goto SW1;
+	if (tmp == '@') return time;
+	time[0] = time[1];
+	time[1] = time[3];
+	time[3] = time[4];
+	time[4] = tmp;
+	LCD_Write_Data(time, 5);
+	Systick_Wait_1ms(100);
+	tmp = Read_Keypad();
+	if (tmp == '!') goto SW1;
+	if (tmp == '@') return time;
+	while(SW2()== 1){};
+	return time;
+}
