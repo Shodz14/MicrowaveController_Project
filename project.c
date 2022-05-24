@@ -32,23 +32,4 @@ int main(void)
 			}
 		  LCD_Countdown(time); 								
 	    break;
-	
-		case 'B':
-			case_bc("Beef Weight?",30);					//display Beef Weight? on LCD 
-		break;
-		case 'C':
-		  case_bc("Chicken Weight?",12);			//display Chicken Weight? on LCD 
-		break;
-		case 'D':
-			LCD_Write_Data("Cooking Time:",13);		
-		  Systick_Wait_1ms(1000);							//display Cooking Time: on LCD for 3 seconds
-			time_ptr = Enter_Time();						
-			for(i = 0; i < 5; i++)
-			{
-				time[i] = time_ptr[i];						
-			}
-			LCD_Countdown(time);								
-			break;
-		}
-	
-}}
+
